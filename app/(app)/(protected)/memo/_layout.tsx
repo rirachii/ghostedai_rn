@@ -10,6 +10,13 @@ export default function MemoLayout() {
           presentation: "card"
         }}
       />
+      <Stack.Screen
+        name="new"
+        options={{
+          headerShown: false,
+          presentation: "card"
+        }}
+      />
     </Stack>
   );
 }
