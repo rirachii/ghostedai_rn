@@ -1,17 +1,24 @@
+import "../global.css";
+
 import { Slot } from "expo-router";
-import { useDeviceContext } from "twrnc";
+import { View } from "react-native";
 
-import { SafeAreaProvider } from "react-native-safe-area-context";
-import tw from "@/lib/tailwind";
-import { SupabaseProvider } from "@/context/SupabaseProvider";
+import { SupabaseProvider, useSupabase } from "@/context/supabase-provider";
 
-export default function Root() {
-	useDeviceContext(tw);
+function RootLayoutNav() {
+	const { onLayoutRootView } = useSupabase();
+
+	return (
+		<View style={{ flex: 1 }} onLayout={onLayoutRootView}>
+			<Slot />
+		</View>
+	);
+}
+
+export default function AppLayout() {
 	return (
 		<SupabaseProvider>
-			<SafeAreaProvider>
-				<Slot />
-			</SafeAreaProvider>
+			<RootLayoutNav />
 		</SupabaseProvider>
 	);
 }
