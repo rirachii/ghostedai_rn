@@ -12,6 +12,7 @@ import { useVoiceRecorder, RecordingQuality } from "@/hooks/useVoiceRecorder";
 import { useSupabase } from "@/context/supabase-provider";
 import { supabase } from "@/config/supabase";
 import { formatTime, generateFilename } from "@/lib/utils";
+import { Buffer } from 'buffer';
 
 export default function HomeScreen() {
   const [isSaving, setIsSaving] = useState(false);
@@ -119,7 +120,8 @@ export default function HomeScreen() {
       setIsSaving(true);
       
       // Generate a unique filename
-      const filename = `voice_memo_${Date.now()}.m4a`;
+      const timestamp = new Date().getTime();
+      const filename = `${timestamp}-${user.id}.m4a`;
       
       // Create backup before upload
       const backupDir = `${FileSystem.documentDirectory}backups/`;
@@ -133,23 +135,29 @@ export default function HomeScreen() {
         console.warn('Failed to create backup:', backupError);
       }
       
-      // Get file content
+      // Get file content - verify file exists and get proper info
       const fileInfo = await FileSystem.getInfoAsync(audioUri);
       if (!fileInfo.exists) {
         throw new Error('Audio file not found');
       }
       
-      // Read file as base64
-      const fileContent = await FileSystem.readAsStringAsync(audioUri, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
+      console.log('Audio file info:', fileInfo);
       
-      // Upload to Supabase Storage
+      // Read file as binary instead of base64 for more reliable upload
+      // const fileContent = await FileSystem.readAsStringAsync(audioUri, {
+      //   encoding: FileSystem.EncodingType.Base64,
+      // });
+
+      const fileContent = Buffer.from(await FileSystem.readAsStringAsync(audioUri, {
+        encoding: FileSystem.EncodingType.Base64,
+      }), 'base64')
+      
+      // Upload to Supabase Storage with proper content type
       const { data, error } = await supabase.storage
         .from('voice-memos')
         .upload(`${user.id}/${filename}`, fileContent, {
-          contentType: 'audio/m4a',
-          upsert: false,
+          contentType: 'audio/x-m4a',
+          upsert: true // Use upsert to replace if file exists
         });
       
       if (error) throw error;
