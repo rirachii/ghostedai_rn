@@ -9,7 +9,7 @@ export default function TabsLayout() {
   const { colorScheme } = useColorScheme();
 
   return (
-      <Tabs
+    <Tabs
       screenOptions={{
         tabBarActiveTintColor: colorScheme === "dark" ? colors.dark.foreground : colors.light.foreground,
         tabBarInactiveTintColor: colorScheme === "dark" ? colors.dark.mutedForeground : colors.light.mutedForeground,
@@ -35,6 +35,12 @@ export default function TabsLayout() {
           tabBarIcon: ({ color, size }) => (
             <FontAwesome name="list" size={size} color={color} />
           ),
+        }}
+      />
+      <Tabs.Screen
+        name="memo"
+        options={{
+          href: null,
         }}
       />
       <Tabs.Screen

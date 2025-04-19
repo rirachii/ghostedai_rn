@@ -5,6 +5,7 @@ import { Text } from "@/components/ui/text";
 import { Button } from "@/components/ui/button";
 import { H1, H3, Muted } from "@/components/ui/typography";
 import { useSupabase } from "@/context/supabase-provider";
+import * as Application from "expo-application";
 
 export default function SettingsScreen() {
   const { user, signOut } = useSupabase();
@@ -87,7 +88,9 @@ export default function SettingsScreen() {
           <Text className="mb-4">
             Ghosted AI helps job seekers stay organized by recording voice memos and extracting tasks automatically.
           </Text>
-
+          <Text className="text-muted-foreground text-sm">
+            Version {Application.nativeApplicationVersion}
+          </Text>
         </View>
 
         {/* App Info */}
