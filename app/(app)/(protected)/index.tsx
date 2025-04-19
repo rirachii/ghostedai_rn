@@ -15,7 +15,7 @@ import { formatTime, generateFilename } from "@/lib/utils";
 
 export default function HomeScreen() {
   const [isSaving, setIsSaving] = useState(false);
-  const [selectedQuality, setSelectedQuality] = useState<RecordingQuality>('medium');
+  const [selectedQuality, setSelectedQuality] = useState<RecordingQuality>('high');
   const [showQualitySettings, setShowQualitySettings] = useState(false);
   const { user } = useSupabase();
   

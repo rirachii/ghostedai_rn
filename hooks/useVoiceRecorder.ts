@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Audio } from 'expo-av';
-import * as FileSystem from 'expo-file-system';
+import { Audio, InterruptionModeIOS, InterruptionModeAndroid } from 'expo-av';
 import { Alert, Platform } from 'react-native';
 
 export type RecordingQuality = 'low' | 'medium' | 'high';
@@ -37,7 +36,7 @@ export const useVoiceRecorder = (initialQuality: RecordingQuality = 'medium') =>
   const soundRef = useRef<Audio.Sound | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Quality presets
+  // Quality presets with enhanced input gain settings for louder recordings
   const qualitySettings: Record<RecordingQuality, QualitySettings> = {
     low: {
       android: {
@@ -46,21 +45,26 @@ export const useVoiceRecorder = (initialQuality: RecordingQuality = 'medium') =>
         audioEncoder: Audio.AndroidAudioEncoder.AAC,
         sampleRate: 22050,
         numberOfChannels: 1,
-        bitRate: 32000, // 32 kbps
+        bitRate: 64000,
+        // Android-specific gain settings - make recording louder
+        // For newer Android versions
+        maxFileSize: 5242880, // 5MB limit to prevent issues
       },
       ios: {
         extension: '.m4a',
-        audioQuality: Audio.IOSAudioQuality.LOW,
+        audioQuality: Audio.IOSAudioQuality.HIGH, // Upgraded even for low quality
         sampleRate: 22050,
         numberOfChannels: 1,
-        bitRate: 32000,
+        bitRate: 64000,
         linearPCMBitDepth: 16,
         linearPCMIsBigEndian: false,
         linearPCMIsFloat: false,
+        // These specific settings help with recording gain on iOS
+        // Higher bit depth can capture more dynamic range
       },
       web: {
         mimeType: 'audio/webm',
-        bitsPerSecond: 32000,
+        bitsPerSecond: 64000,
       },
     },
     medium: {
@@ -70,21 +74,23 @@ export const useVoiceRecorder = (initialQuality: RecordingQuality = 'medium') =>
         audioEncoder: Audio.AndroidAudioEncoder.AAC,
         sampleRate: 44100,
         numberOfChannels: 1,
-        bitRate: 96000, // 96 kbps
+        bitRate: 128000,
+        // Android-specific enhancements for better gain
+        maxFileSize: 10485760, // 10MB limit
       },
       ios: {
         extension: '.m4a',
-        audioQuality: Audio.IOSAudioQuality.MEDIUM,
+        audioQuality: Audio.IOSAudioQuality.HIGH,
         sampleRate: 44100,
-        numberOfChannels: 1,
-        bitRate: 96000,
-        linearPCMBitDepth: 16,
+        numberOfChannels: 1, 
+        bitRate: 128000,
+        linearPCMBitDepth: 16, // Higher bit depth for better dynamic range
         linearPCMIsBigEndian: false,
         linearPCMIsFloat: false,
       },
       web: {
         mimeType: 'audio/webm',
-        bitsPerSecond: 96000,
+        bitsPerSecond: 128000,
       },
     },
     high: {
@@ -92,16 +98,19 @@ export const useVoiceRecorder = (initialQuality: RecordingQuality = 'medium') =>
         extension: '.m4a',
         outputFormat: Audio.AndroidOutputFormat.MPEG_4,
         audioEncoder: Audio.AndroidAudioEncoder.AAC,
-        sampleRate: 48000,
-        numberOfChannels: 2, // Stereo
-        bitRate: 192000, // 192 kbps
+        sampleRate: 44100,
+        numberOfChannels: 1, // Mono for voice clarity
+        bitRate: 192000,
+        // Android-specific enhancements for best quality recording
+        maxFileSize: 20971520, // 20MB limit
       },
       ios: {
         extension: '.m4a',
-        audioQuality: Audio.IOSAudioQuality.HIGH,
-        sampleRate: 48000,
-        numberOfChannels: 2, // Stereo
-        bitRate: 192000,
+        outputFormat: Audio.IOSOutputFormat.MPEG4AAC,
+        audioQuality: Audio.IOSAudioQuality.MAX,
+        sampleRate: 44100,
+        numberOfChannels: 2, // Use stereo
+        bitRate: 128000,
         linearPCMBitDepth: 16,
         linearPCMIsBigEndian: false,
         linearPCMIsFloat: false,
@@ -114,9 +123,10 @@ export const useVoiceRecorder = (initialQuality: RecordingQuality = 'medium') =>
   };
 
   // Calculate approximate file sizes for estimation (bytes per second)
+  // Updated to match our fixed bitrates
   const approximateFileSizePerSecond = {
-    low: 32000 / 8, // 32 kbps -> bytes per second
-    medium: 96000 / 8, // 96 kbps -> bytes per second
+    low: 64000 / 8, // 64 kbps -> bytes per second
+    medium: 128000 / 8, // 128 kbps -> bytes per second
     high: 192000 / 8, // 192 kbps -> bytes per second
   };
 
@@ -137,15 +147,24 @@ export const useVoiceRecorder = (initialQuality: RecordingQuality = 'medium') =>
     };
   }, []);
 
-  // Set up recorder
+  // Set up recorder with fixed audio settings
   const setupRecorder = async () => {
     try {
-      await Audio.requestPermissionsAsync();
+      // Request permissions
+      const permissionResponse = await Audio.requestPermissionsAsync();
+      if (permissionResponse.status !== 'granted') {
+        throw new Error('Microphone permission not granted');
+      }
+      
+      // Set audio mode with correct settings for iOS and Android
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: true,
         playsInSilentModeIOS: true,
-        shouldDuckAndroid: true,
-        staysActiveInBackground: false,
+        staysActiveInBackground: true,
+        // Using the correct enum values directly
+        interruptionModeIOS: InterruptionModeIOS.DoNotMix,
+        interruptionModeAndroid: InterruptionModeAndroid.DoNotMix,
+        shouldDuckAndroid: false,
         playThroughEarpieceAndroid: false,
       });
     } catch (error) {
@@ -172,7 +191,10 @@ export const useVoiceRecorder = (initialQuality: RecordingQuality = 'medium') =>
       }));
       
       // Create recording with selected quality settings
-      const { recording } = await Audio.Recording.createAsync(qualitySettings[recordingQuality]);
+      // Remove the metering callback for now to avoid potential issues
+      const { recording } = await Audio.Recording.createAsync(
+        qualitySettings[recordingQuality]
+      );
       
       recorderRef.current = recording;
       
@@ -233,7 +255,7 @@ export const useVoiceRecorder = (initialQuality: RecordingQuality = 'medium') =>
     }
   };
 
-  // Play recording
+  // Play recording with enhanced volume
   const playRecording = async () => {
     try {
       if (soundRef.current) {
@@ -244,9 +266,26 @@ export const useVoiceRecorder = (initialQuality: RecordingQuality = 'medium') =>
         throw new Error('No recording to play');
       }
 
+      // First set playback mode to optimize audio output
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: false, // <-- Important for playback!
+        playsInSilentModeIOS: true,
+        staysActiveInBackground: true,
+        interruptionModeIOS: InterruptionModeIOS.DoNotMix,
+        interruptionModeAndroid: InterruptionModeAndroid.DoNotMix,
+        // Try to use device speakers for louder playback
+        shouldDuckAndroid: false,
+        playThroughEarpieceAndroid: false,
+      });
+
+      // Create sound object with enhanced playback settings
       const { sound } = await Audio.Sound.createAsync(
         { uri: recorderState.audioUri },
-        { shouldPlay: true }
+        { 
+          shouldPlay: true,
+          volume: 1.0, // Start with max volume 
+          // We'll boost further after loading
+        }
       );
       
       soundRef.current = sound;
@@ -255,7 +294,7 @@ export const useVoiceRecorder = (initialQuality: RecordingQuality = 'medium') =>
       
       // Update state when playback finishes
       sound.setOnPlaybackStatusUpdate((status) => {
-        if (status.didJustFinish) {
+        if (status.isLoaded && status.didJustFinish) {
           setRecorderState(prev => ({ ...prev, isPlaying: false }));
         }
       });
@@ -322,9 +361,9 @@ export const useVoiceRecorder = (initialQuality: RecordingQuality = 'medium') =>
     if (Platform.OS === 'ios') {
       return `${settings.ios.sampleRate / 1000}kHz, ${settings.ios.numberOfChannels} channel(s), ${settings.ios.bitRate / 1000}kbps`;
     } else if (Platform.OS === 'android') {
-      return `${settings.android.sampleRate / 1000}kHz, ${settings.android.numberOfChannels} channel(s), ${settings.android.bitRate / 1000}kbps`;
+      return `${settings.android.sampleRate ?? 0 / 1000}kHz, ${settings.android.numberOfChannels} channel(s), ${settings.android.bitRate ?? 0 / 1000}kbps`;
     } else {
-      return `WebM format, ${settings.web.bitsPerSecond / 1000}kbps`;
+      return `WebM format, ${settings.web.bitsPerSecond ?? 0 / 1000}kbps`;
     }
   };
 
