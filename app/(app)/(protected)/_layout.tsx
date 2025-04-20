@@ -32,15 +32,10 @@ export default function TabsLayout() {
         name="memos"
         options={{
           title: "Memos",
+          headerShown: false,
           tabBarIcon: ({ color, size }) => (
             <FontAwesome name="list" size={size} color={color} />
           ),
-        }}
-      />
-      <Tabs.Screen
-        name="memo"
-        options={{
-          href: null,
         }}
       />
       <Tabs.Screen

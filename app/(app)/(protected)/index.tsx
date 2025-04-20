@@ -4,6 +4,7 @@ import { router } from "expo-router";
 import * as FileSystem from 'expo-file-system';
 import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from "@/components/safe-area-view";
+
 import { H1, H3, Muted } from "@/components/ui/typography";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
@@ -179,7 +180,10 @@ export default function HomeScreen() {
       resetRecording();
       
       // Navigate to processing screen with the memo ID
-      router.push(`/memo/new?id=${memo.id}`);
+      router.push({
+        pathname: "/memos/[id]",
+        params: { id: memo.id }
+      });
       
     } catch (error) {
       console.error('Error saving recording:', error);
@@ -343,6 +347,7 @@ export default function HomeScreen() {
           </View>
         </View>
       </View>
+
     </SafeAreaView>
   );
 }

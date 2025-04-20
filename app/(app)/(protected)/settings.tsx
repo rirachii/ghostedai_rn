@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { View, ScrollView, Switch, Alert } from "react-native";
 import { SafeAreaView } from "@/components/safe-area-view";
+
 import { Text } from "@/components/ui/text";
 import { Button } from "@/components/ui/button";
 import { H1, H3, Muted } from "@/components/ui/typography";
@@ -100,6 +101,7 @@ export default function SettingsScreen() {
           </Text>
         </View>
       </ScrollView>
+
     </SafeAreaView>
   );
 }

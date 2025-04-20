@@ -6,6 +6,21 @@ Most of the code lives in the `root` folder and looks like this:
 root
 |
 +-- app               # This directory serves as the router in your mobile navigation. It contains all the screens and layouts for your application.
+    +-- (app)
+    |   /layout.tsx
+    |   +-- (app)
+    |   |   /layout.tsx
+    |   |   /page.tsx
+    |   |   +-- (protected)
+    |   |   |   /_layout.tsx
+    |   |   |   /index.tsx
+    |   |   |   /memos.tsx
+    |   |   |   /settings.tsx
+    |   |   |   +-- (memo)
+    |   |   |   |   /layout.tsx
+    |   |   |   |   /page.tsx
+
+    
 |
 +-- assets            # This directory contains all the static assets in your application, including images, fonts, and icons.
 |

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { View, FlatList, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
 import { router } from "expo-router";
 import { SafeAreaView } from "@/components/safe-area-view";
+
 import { H1, Muted } from "@/components/ui/typography";
 import { Text } from "@/components/ui/text";
 import { Button } from "@/components/ui/button";
@@ -68,7 +69,10 @@ export default function MemosScreen() {
 
   // Navigate to memo detail
   const handleMemoPress = (id: string) => {
-    router.push(`/(app)/(protected)/memo/${id}`);
+    router.push({
+      pathname: "/memos/[id]",
+      params: { id }
+    });
   };
 
   // Handle memo deletion
@@ -113,7 +117,7 @@ export default function MemosScreen() {
         Your voice memos will appear here after you record them
       </Muted>
       <Button
-        onPress={() => router.push("/(app)/(protected)")}
+        onPress={() => router.push("/memos/new")}
         className="px-6"
       >
         Record a Voice Memo
@@ -143,6 +147,7 @@ export default function MemosScreen() {
           className="p-2 mr-2"
           onPress={() => handleDeleteMemo(item.id)}
         >
+          
           <Text className="text-lg text-destructive">🗑️</Text>
         </TouchableOpacity>
         <Text className="text-muted-foreground">›</Text>
@@ -170,6 +175,7 @@ export default function MemosScreen() {
               flexGrow: 1, 
               paddingBottom: 20
             }}
+            showsVerticalScrollIndicator={false}
             refreshing={isRefreshing}
             onRefresh={handleRefresh}
           />
