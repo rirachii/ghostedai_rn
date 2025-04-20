@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, FlatList, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
+import { View, FlatList, TouchableOpacity, ActivityIndicator, Alert, RefreshControl } from "react-native";
 import { router } from "expo-router";
 import { SafeAreaView } from "@/components/safe-area-view";
 
@@ -157,30 +157,38 @@ export default function MemosScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-background">
-      <View className="p-4">
-        <H1 className="mb-6">Your Memos</H1>
-        
-        {isLoading && !isRefreshing ? (
-          <View className="flex-1 justify-center items-center p-4">
-            <ActivityIndicator size="large" color="#0000ff" />
-            <Text className="mt-4">Loading your memos...</Text>
+      <FlatList
+        ListHeaderComponent={
+          <View className="p-4">
+            <H1 className="mb-6">Your Memos</H1>
           </View>
-        ) : (
-          <FlatList
-            data={memos}
-            keyExtractor={(item) => item.id}
-            renderItem={renderMemoItem}
-            ListEmptyComponent={renderEmptyState}
-            contentContainerStyle={{ 
-              flexGrow: 1, 
-              paddingBottom: 20
-            }}
-            showsVerticalScrollIndicator={false}
+        }
+        data={memos}
+        keyExtractor={(item) => item.id}
+        renderItem={renderMemoItem}
+        ListEmptyComponent={
+          isLoading ? (
+            <View className="flex-1 justify-center items-center p-4">
+              <ActivityIndicator size="large" color="#0000ff" />
+              <Text className="mt-4">Loading your memos...</Text>
+            </View>
+          ) : (
+            renderEmptyState()
+          )
+        }
+        contentContainerStyle={{ 
+          flexGrow: 1,
+          paddingHorizontal: 16,
+          paddingBottom: 20
+        }}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
             refreshing={isRefreshing}
             onRefresh={handleRefresh}
           />
-        )}
-      </View>
+        }
+      />
     </SafeAreaView>
   );
 }
