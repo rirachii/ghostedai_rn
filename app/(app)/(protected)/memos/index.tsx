@@ -117,10 +117,10 @@ export default function MemosScreen() {
         Your voice memos will appear here after you record them
       </Muted>
       <Button
-        onPress={() => router.push("/memos/new")}
+        onPress={() => router.push("/(app)/(protected)")}
         className="px-6"
       >
-        Record a Voice Memo
+        <Text>Record a Voice Memo</Text>
       </Button>
     </View>
   );
