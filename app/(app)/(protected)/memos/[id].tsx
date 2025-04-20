@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { View, ActivityIndicator, Alert, TextInput, TouchableOpacity } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { SafeAreaView } from "@/components/safe-area-view";
@@ -13,6 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { FontAwesome } from "@expo/vector-icons";
 import { ScrollView } from "react-native";
+import { Audio, InterruptionModeIOS, InterruptionModeAndroid } from 'expo-av';
 
 // Define types
 type Memo = Tables<"memos">;
@@ -58,6 +59,9 @@ export default function MemoDetailScreen() {
   const [editingTaskText, setEditingTaskText] = useState("");
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isLoadingAudio, setIsLoadingAudio] = useState(false);
+  const soundRef = useRef<Audio.Sound | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -72,6 +76,15 @@ export default function MemoDetailScreen() {
       setIsLoading(false);
     }
   }, [id, user]);
+
+  // Clean up sound object on unmount
+  useEffect(() => {
+    return () => {
+      if (soundRef.current) {
+        soundRef.current.unloadAsync();
+      }
+    };
+  }, []);
 
   const fetchMemoDetails = async () => {
     try {
@@ -369,6 +382,76 @@ export default function MemoDetailScreen() {
     router.back();
   };
 
+  const playAudio = async () => {
+    try {
+      setIsLoadingAudio(true);
+
+      if (!memo?.storage_path) {
+        throw new Error('No audio file available');
+      }
+
+      // If already loaded, just toggle play/pause
+      if (soundRef.current) {
+        const status = await soundRef.current.getStatusAsync();
+        if (status.isLoaded) {
+          if (status.isPlaying) {
+            await soundRef.current.pauseAsync();
+            setIsPlaying(false);
+          } else {
+            await soundRef.current.playAsync();
+            setIsPlaying(true);
+          }
+          return;
+        }
+      }
+
+      // Set audio mode for playback
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+        playsInSilentModeIOS: true,
+        staysActiveInBackground: true,
+        interruptionModeIOS: InterruptionModeIOS.DoNotMix,
+        interruptionModeAndroid: InterruptionModeAndroid.DoNotMix,
+      });
+
+      // Load and play the audio
+      const { sound } = await Audio.Sound.createAsync(
+        { uri: memo.storage_path },
+        { shouldPlay: true },
+        (status) => {
+          // Update playing state based on playback status
+          if (status.isLoaded) {
+            setIsPlaying(status.isPlaying);
+            if (!status.isPlaying && status.didJustFinish) {
+              setIsPlaying(false);
+            }
+          }
+        }
+      );
+
+      soundRef.current = sound;
+      setIsPlaying(true);
+    } catch (error) {
+      console.error('Error playing audio:', error);
+      Alert.alert('Error', 'Failed to play audio file');
+    } finally {
+      setIsLoadingAudio(false);
+    }
+  };
+
+  const stopAudio = async () => {
+    if (soundRef.current) {
+      try {
+        await soundRef.current.stopAsync();
+        await soundRef.current.unloadAsync();
+        soundRef.current = null;
+        setIsPlaying(false);
+      } catch (error) {
+        console.error('Error stopping audio:', error);
+      }
+    }
+  };
+
   if (isLoading) {
     return (
       <SafeAreaView className="flex-1 bg-background">
@@ -383,16 +466,30 @@ export default function MemoDetailScreen() {
   return (
     <SafeAreaView className="flex-1 bg-background">
       <ScrollView className="flex-1 p-4">
-        <View className="flex-row items-center mb-4">
-          <TouchableOpacity
-            onPress={handleBack}
-            className="flex-row items-center mr-2 p-2"
-          >
-            <FontAwesome name="chevron-left" size={18} color="#3b82f6" />
-            <Text className="text-primary ml-1">Back</Text>
+        <View className="flex-row items-center justify-between mb-6">
+          <TouchableOpacity onPress={handleBack} className="p-2">
+            <FontAwesome name="arrow-left" size={24} color="#000" />
           </TouchableOpacity>
-          
-          <H1>{id ? "Memo Details" : "Processing Memo"}</H1>
+          <H1>{title}</H1>
+          <View style={{ width: 32 }} />
+        </View>
+
+        {/* Audio Playback Controls */}
+        <View className="flex-row items-center justify-center mb-6 bg-card p-4 rounded-lg">
+          {isLoadingAudio ? (
+            <ActivityIndicator size="large" color="#3b82f6" />
+          ) : (
+            <TouchableOpacity
+              onPress={isPlaying ? stopAudio : playAudio}
+              className="p-4 bg-primary rounded-full"
+            >
+              <FontAwesome
+                name={isPlaying ? "pause" : "play"}
+                size={24}
+                color="#fff"
+              />
+            </TouchableOpacity>
+          )}
         </View>
 
         <TextInput

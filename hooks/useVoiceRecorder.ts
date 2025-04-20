@@ -190,11 +190,15 @@ export const useVoiceRecorder = (initialQuality: RecordingQuality = 'medium') =>
         error: null,
       }));
       
-      // Create recording with selected quality settings
-      // Remove the metering callback for now to avoid potential issues
+      // Create recording with selected quality settings and enable metering
       const { recording } = await Audio.Recording.createAsync(
-        qualitySettings[recordingQuality]
+        qualitySettings[recordingQuality],
+        null,  // No callback
+        100    // Update every 100ms for metering
       );
+      
+      // Enable metering
+      await recording.setProgressUpdateInterval(100);
       
       recorderRef.current = recording;
       
@@ -386,5 +390,6 @@ export const useVoiceRecorder = (initialQuality: RecordingQuality = 'medium') =>
     getEstimatedFileSize,
     getQualityDescription,
     formatTime,
+    recording: recorderRef.current,  // Expose the recording object
   };
 };

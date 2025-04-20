@@ -2,8 +2,8 @@ import { Session, User } from "@supabase/supabase-js";
 import { useRouter, useSegments, SplashScreen } from "expo-router";
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import * as AppleAuthentication from 'expo-apple-authentication';
-import * as WebBrowser from 'expo-web-browser';
-import * as Google from 'expo-auth-session/providers/google';
+import * as WebBrowser from 'expo-web-browser'
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { makeRedirectUri } from 'expo-auth-session';
 
 import { supabase } from "@/config/supabase";
@@ -52,13 +52,13 @@ export const SupabaseProvider = ({ children }: SupabaseProviderProps) => {
 	const [appIsReady, setAppIsReady] = useState<boolean>(false);
 	
 	// Set up Google OAuth
-	const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
-		clientId: '901877301098-0gcu5jrd7ru81qdm7odv1av4bsvb5uf0.apps.googleusercontent.com', // Replace with your actual Google client ID
-		redirectUri: makeRedirectUri({
-			scheme: 'ghosted',
-		}),
-		scopes: ['profile', 'email'],
-	});
+	// const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
+	// 	clientId: '901877301098-0gcu5jrd7ru81qdm7odv1av4bsvb5uf0.apps.googleusercontent.com', // Replace with your actual Google client ID
+	// 	redirectUri: makeRedirectUri({
+	// 		scheme: 'ghosted',
+	// 	}),
+	// 	scopes: ['profile', 'email'],
+	// });
 
 	const signUp = async (email: string, password: string) => {
 		const { error } = await supabase.auth.signUp({
@@ -111,49 +111,49 @@ export const SupabaseProvider = ({ children }: SupabaseProviderProps) => {
 	};
 
 	// Handle Google authentication response
-	useEffect(() => {
-		if (response?.type === 'success') {
-			const { id_token } = response.params;
+	// useEffect(() => {
+	// 	if (response?.type === 'success') {
+	// 		const { id_token } = response.params;
 			
-			const handleGoogleToken = async () => {
-				try {
-					const { error } = await supabase.auth.signInWithIdToken({
-						provider: 'google',
-						token: id_token,
-					});
+	// 		const handleGoogleToken = async () => {
+	// 			try {
+	// 				const { error } = await supabase.auth.signInWithIdToken({
+	// 					provider: 'google',
+	// 					token: id_token,
+	// 				});
 					
-					if (error) throw error;
-				} catch (error) {
-					console.error('Error signing in with Google token:', error);
-				}
-			};
+	// 				if (error) throw error;
+	// 			} catch (error) {
+	// 				console.error('Error signing in with Google token:', error);
+	// 			}
+	// 		};
 			
-			handleGoogleToken();
-		}
-	}, [response]);
+	// 		handleGoogleToken();
+	// 	}
+	// }, [response]);
 
-	const signInWithGoogle = async (): Promise<void> => {
+	const signInWithGoogle = async () => {
 		try {
-			// Ensure request is ready
-			if (!request) {
-				throw new Error('Google authentication request not ready');
-			}
-			
-			// Prompt the user to log in with Google
-			const result = await promptAsync();
-			
-			if (result.type !== 'success') {
-				// User cancelled or auth failed at the Google prompt level
-				console.log('Google sign in cancelled or failed:', result);
-				throw new Error('Google sign-in was cancelled or failed');
-			}
-			
-			// The actual token handling happens in the useEffect above
+		  await GoogleSignin.hasPlayServices();
+		  const userInfo = await GoogleSignin.signIn();
+		  const idToken = userInfo.data?.idToken;
+	  
+		  if (!idToken) throw new Error('No ID token returned from Google');
+	  
+		  const { data, error } = await supabase.auth.signInWithIdToken({
+			provider: 'google',
+			token: idToken,
+		  });
+	  
+		  if (error) throw error;
+	  
+		  // User is signed in, handle session
+		  console.log('Supabase session:', data.session);
 		} catch (error) {
-			console.error('Error signing in with Google:', error);
-			throw error;
+		  console.error('Google/Supabase sign-in error:', error);
+		  // Handle error
 		}
-	};
+	  };
 
 	const signOut = async () => {
 		const { error } = await supabase.auth.signOut();

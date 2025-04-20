@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { View, Alert, TouchableOpacity, ActivityIndicator } from "react-native";
 import { router } from "expo-router";
 import * as FileSystem from 'expo-file-system';
@@ -8,8 +8,10 @@ import { SafeAreaView } from "@/components/safe-area-view";
 import { H1, H3, Muted } from "@/components/ui/typography";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
-import AudioSphere from "@/components/audio/AudioSphere";
+import BasicSkiaVisualizer from "@/components/audio/BasicSkiaVisualizer";
+
 import { useVoiceRecorder, RecordingQuality } from "@/hooks/useVoiceRecorder";
+import { useAudioAmplitude } from "@/hooks/useAudioAmplitude";
 import { useSupabase } from "@/context/supabase-provider";
 import { supabase } from "@/config/supabase";
 import { formatTime, generateFilename } from "@/lib/utils";
@@ -20,6 +22,7 @@ export default function HomeScreen() {
   const [selectedQuality, setSelectedQuality] = useState<RecordingQuality>('high');
   const [showQualitySettings, setShowQualitySettings] = useState(false);
   const { user } = useSupabase();
+  const recordingRef = useRef(null);
   
   const {
     isRecording,
@@ -35,8 +38,12 @@ export default function HomeScreen() {
     getEstimatedFileSize,
     getQualityDescription,
     formatTime: formatRecordingTime,
-    recordingQuality
+    recordingQuality,
+    recording  // Add access to the recording object
   } = useVoiceRecorder(selectedQuality);
+
+  // Get audio amplitude from the actual recording
+  const amplitude = useAudioAmplitude(isRecording, { current: recording });
 
   // Maximum recording time in seconds (10 minutes)
   const MAX_RECORDING_TIME = 10 * 60;
@@ -218,12 +225,13 @@ export default function HomeScreen() {
         <View className="py-2 mb-4">
           <H1 className="text-center">Voice Memo</H1>
         </View>
-
+        
         {/* Recording Visualization */}
         <View className="flex-1 justify-center items-center">
           <View className="mb-8">
-            <AudioSphere 
+            <BasicSkiaVisualizer 
               isRecording={isRecording} 
+              amplitude={amplitude}
               size={240}
               color="#3b82f6"
             />
